@@ -1,0 +1,79 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+import os
+import sys
+import pika
+import json
+import nsm_lib
+
+
+def a2s_callback(ch, method, properties, message):
+    #message 是json对象
+    mes = json.loads(message)
+    print mes
+
+    return 0
+
+
+def main():
+    s2a_exchange = 'server2agent'
+    s2a_routing_key ='zktx.agent.'+ nsm_lib.getLocalIp();
+    s2a_exchange_type = 'topic'
+
+    a2s_exchange = 'agent2server'
+    a2s_routing_key = 'zktx.server.*.'
+    a2s_exchange_type = 'topic'
+
+    pid = os.fork()
+    if pid > 0:
+        # exit first parent
+        sys.exit(0)
+
+    '''
+    发送消息
+    '''
+    #建立连接
+    s2a_connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    #得到channel
+    s2a_channel = s2a_connection.channel()
+    #创建一个exchange
+    s2a_channel.exchange_declare(exchange=s2a_exchange, type=s2a_exchange_type)
+
+    arr_json = {"id":1,"type":1, "fun_id":1, "body":{ "dir_name":"polly",\
+    	"limit":{"user":[1, 1, 0],  "user_group":[1, 0, 0],  "other":[1, 0, 1]},\
+    	"quota":{"max_file_num":"10000", "max_file_size":"5G"} } }
+
+    python_to_json = json.dumps(arr_json, ensure_ascii=False)
+
+    s2a_channel.basic_publish(exchange=s2a_exchange, routing_key=s2a_routing_key, body=python_to_json)
+
+    '''
+    接收来自client消息
+    '''
+    # 建立连接
+    a2s_connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    # 得到channel
+    a2s_channel = a2s_connection.channel()
+    # 创建一个exchange
+    a2s_channel.exchange_declare(exchange=a2s_exchange, type=a2s_exchange_type)
+    # 创建一个匿名队列
+    a2s_queue = a2s_channel.queue_declare(exclusive=True)
+    a2s_queue_name = a2s_queue.method.queue
+
+    # 绑定一下
+    a2s_channel.queue_bind(exchange=a2s_exchange, queue=a2s_queue_name, routing_key=a2s_routing_key)
+
+    a2s_channel.basic_consume(a2s_callback, queue=a2s_queue_name, no_ack=True)
+    a2s_channel.start_consuming()
+
+
+    '''
+    关闭链接
+    '''
+    s2a_connection.close()
+    a2s_connection.close()
+    return 0
+
+if __name__ == '__main__':
+    retval = main()
+    sys.exit(retval)
