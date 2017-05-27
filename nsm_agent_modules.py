@@ -19,14 +19,15 @@ import stat
 	body:{}		//消息的内容
 }
 消息类型包括：
-NSM_EXCUTE_SCRIPT		1   执行操作
+NSM_AGENT_EXECUTE		1   执行操作
+    NSM_AGENT_EXECUTE_CREAT_DIR 1 //create dir
 NSM_AGENT_HEARTBEAT		2   心跳
 NSM_AGENT_CHECK			3   监控
 NSM_AGENT_REGISTER		4	agent注册
 '''
 
-message_type = {"NSM_EXCUTE_SCRIPT":1, "NSM_AGENT_HEARTBEAT":2,"NSM_AGENT_CHECK":3, "NSM_AGENT_REGISTER":4}
-fun_id = {"NSM_UNDEFINE":0, "NSM_EXCUTE_SCRIPT_CREAT_DIR":1}
+message_type = {"NSM_AGENT_UNDEFINE":0, "NSM_AGENT_EXECUTE":1, "NSM_AGENT_HEARTBEAT":2,"NSM_AGENT_CHECK":3, "NSM_AGENT_REGISTER":4}
+fun_id = {"NSM_UNDEFINE":0, "NSM_AGENT_EXECUTE_CREAT_DIR":1}
 
 def create_dir(body):
 
@@ -71,3 +72,9 @@ def create_dir(body):
                 + body["limit"]["other"][2] * stat.S_IXOTH
 
     os.chmod(dir_name, limit_value)
+
+'''
+fun_table is message type function function table
+so fun_table[1][1]==(NSM_AGENT_EXECUTE  1 //执行操作) ->  (NSM_AGENT_EXECUTE_CREAT_DIR 1 //create dir)
+'''
+fun_table = [[''], ['', 'create_dir'], [''], [''], ['']]
