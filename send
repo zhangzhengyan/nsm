@@ -10,7 +10,8 @@ import nsm_lib
 def a2s_callback(ch, method, properties, message):
     #message 是json对象
     mes = json.loads(message)
-    print mes
+    # print 'agent send mes :'
+    # print mes
 
     return 0
 
@@ -39,13 +40,21 @@ def main():
     #创建一个exchange
     s2a_channel.exchange_declare(exchange=s2a_exchange, type=s2a_exchange_type)
 
-    arr_json = {"id":1,"type":1, "fun_id":1, "body":{ "dir_name":"polly",\
+    #create dir message
+    arr_json = {"id":1,"type":1, "fun_id":1, "echo":True, "sync":True, "body":{ "dir_name":"/polly",\
     	"limit":{"user":[1, 1, 0],  "user_group":[1, 0, 0],  "other":[1, 0, 1]},\
-    	"quota":{"max_file_num":"10000", "max_file_size":"5G"} } }
+    	"quota":{"max_file_num":"10000", "max_file_size":"5242880"} } }
 
     python_to_json = json.dumps(arr_json, ensure_ascii=False)
 
     s2a_channel.basic_publish(exchange=s2a_exchange, routing_key=s2a_routing_key, body=python_to_json)
+
+    #dir list message
+    # arr_json = {"id": 1, "type": 1, "fun_id": 2, "echo":True, "sync":True, "body": {"dir_name": "/"} }
+    #
+    # python_to_json = json.dumps(arr_json, ensure_ascii=False)
+    #
+    # s2a_channel.basic_publish(exchange=s2a_exchange, routing_key=s2a_routing_key, body=python_to_json)
 
     '''
     接收来自client消息

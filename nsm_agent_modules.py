@@ -5,6 +5,7 @@ import subprocess
 import commands
 import os
 import stat
+from nsm_lib import fs_root_dir
 
 '''
 消息的结构体如下：
@@ -49,14 +50,14 @@ def create_dir(body):
     	    "quota":
     	    {
     	        "max_file_num":"10000",
-    	        "max_file_size":"5G"
+    	        "max_file_size":"5"
     	    }
         }
     }
     '''
 
     #得到目录名
-    dir_name = body["dir_name"]
+    dir_name = fs_root_dir + body["dir_name"]
     #创建目，如果目录存在要处理一下，正常情况目录时不应该存在的
     os.makedirs(dir_name)
 
@@ -72,6 +73,20 @@ def create_dir(body):
                 + body["limit"]["other"][2] * stat.S_IXOTH
 
     os.chmod(dir_name, limit_value)
+
+    #set directory quota
+    quota_cmd = 'setfattr -n ceph.quota.max_bytes -v ' + body["quota"]["max_file_size"] + ' ' + dir_name
+    print quota_cmd
+    os.system(quota_cmd)
+
+    quota_cmd = 'setfattr -n ceph.quota.max_files -v ' + body["quota"]["max_file_num"] + ' ' + dir_name
+    print quota_cmd
+    os.system(quota_cmd)
+
+    re_mes_body={"echo":"ok"}
+
+    return re_mes_body
+
 
 '''
 fun_table is message type function function table

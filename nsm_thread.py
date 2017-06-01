@@ -14,7 +14,7 @@ import pika
 import json
 import datetime
 
-#集群几点系统信息配置文件目录
+#集群节点系统信息配置文件目录
 sys_conf = "/var/nsm_agent/myself"
 
 
@@ -56,7 +56,8 @@ class send_thread(threading.Thread):
         #sleep times
         interval_count=0
 
-        while True:
+        #while True:
+        while False:
             if sleep_interval:
                 time.sleep(sleep_interval)
 
@@ -111,9 +112,6 @@ class send_thread(threading.Thread):
             return int((end_time - start_time) / sleep_interval)
 
 
-
-
-
 '''
 这个启动注册一下，但是还需要定期发送注册信息
 因为如果在agent注册时候server端还没有运行，那么将没有注册成功，所以定时发送注册以便更新
@@ -147,7 +145,7 @@ def send_register(channel, exchange, routing_key):
     message["body"]["sys_type"]["cifs"] = config.get("sys_type", "cifs")
     message["body"]["sys_type"]["ftp"] = config.get("sys_type", "ftp")
 
-    print message
+    #print message
     message = json.dumps(message, ensure_ascii=False)
 
     channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
@@ -172,6 +170,30 @@ def send_heartbeat(channel, exchange, routing_key):
     message = json.dumps(message, ensure_ascii=False)
 
     channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
+
+
+class echo_send_thread(threading.Thread):
+    def __init__(self, threadID, name, channel, exchange, routing_key, queue):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.channel = channel
+        self.routing_key = routing_key
+        self.exchange = exchange
+        self.queue = queue
+    def run(self):
+        #get echo message
+
+        while True:
+            if not self.queue.empty():
+                echo_mes = self.queue.get()
+
+                echo_mes = json.dumps(echo_mes, ensure_ascii=False)
+
+                self.channel.basic_publish(exchange=self.exchange, routing_key=self.routing_key, body=echo_mes)
+            else:
+                time.sleep(1)
+
 
 
 
