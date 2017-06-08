@@ -1,6 +1,10 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
+import os
+
+fs_root_dir = '/ifs'
+
 #得到本地指定网卡的ip地址，
 def getLocalIp(ifname = 'eth0'):
     import socket, fcntl, struct;
@@ -9,4 +13,19 @@ def getLocalIp(ifname = 'eth0'):
     ip = socket.inet_ntoa(inet[20:24]);
     return ip;
 
-fs_root_dir = '/ifs'
+
+
+
+def get_path_size(strPath):
+    if not os.path.exists(strPath):
+        return 0;
+
+    if os.path.isfile(strPath):
+        return os.path.getsize(strPath);
+
+    nTotalSize = 4096;  #dir's size
+    dir_list = os.listdir(strPath)
+    for f in dir_list:
+        nTotalSize += get_path_size(os.path.join(strPath, f))
+
+    return nTotalSize;

@@ -28,6 +28,8 @@ def s2a_callback(ch, method, properties, message):
     f = eval(fun_table[mes["type"]][mes["fun_id"]])
     re_mes_body = f(mes["body"])
 
+    print re_mes_body
+
     if mes["sync"]:
         if mes["echo"]:
             mes["sync"] = False
@@ -78,7 +80,7 @@ def main():
     send_thread.start()
 
 
-    # 创建线程开始发送消息
+    # 创建线程开始发送回显消息
     echo_send_thread = nsm_thread.echo_send_thread(2, "nsm_echo_send_thread", a2s_channel, a2s_exchange, a2s_routing_key, echo_mes_queue)
     echo_send_thread.start()
 

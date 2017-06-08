@@ -6,6 +6,8 @@ import commands
 import os
 import stat
 from nsm_lib import fs_root_dir
+from nsm_lib import get_path_size
+
 
 '''
 消息的结构体如下：
@@ -28,7 +30,8 @@ NSM_AGENT_REGISTER		4	agent注册
 '''
 
 message_type = {"NSM_AGENT_UNDEFINE":0, "NSM_AGENT_EXECUTE":1, "NSM_AGENT_HEARTBEAT":2,"NSM_AGENT_CHECK":3, "NSM_AGENT_REGISTER":4}
-fun_id = {"NSM_UNDEFINE":0, "NSM_AGENT_EXECUTE_CREAT_DIR":1}
+exe_fun_id = {"NSM_UNDEFINE":0, "NSM_AGENT_EXECUTE_CREAT_DIR":1, "NSM_AGENT_EXECUTE_LIST_DIR":2}
+check_fun_id = {"NSM_UNDEFINE":0, "NSM_AGENT_CHECK_NODE_STATUS":1}
 
 def create_dir(body):
 
@@ -87,9 +90,46 @@ def create_dir(body):
 
     return re_mes_body
 
+#list directories and the files under the specified directory
+def list_dir(body):
+    global sys_root_dir
+    dir_name = body["dir_name"]
+    full_dir_name = os.path.join(fs_root_dir, dir_name)
+
+    #current dir list
+    dir_list = os.listdir(full_dir_name)
+    re_mes_body = {}
+    file_attr = []
+
+    for f in dir_list:
+        cur_file = os.path.join(full_dir_name, f)
+        attr = {}
+        if os.path.isdir(cur_file):
+            dir_size = get_path_size(cur_file)
+            attr["name"] = f
+            attr["size"] = dir_size
+            attr["type"] = 1
+        else:
+            file_size =  os.path.getsize(cur_file)
+            attr["name"] = f
+            attr["size"] = file_size
+            attr["type"] = 2
+        file_attr.append(attr)
+
+    re_mes_body["file_attr"] = file_attr
+
+    return re_mes_body
+
+
 
 '''
 fun_table is message type function function table
 so fun_table[1][1]==(NSM_AGENT_EXECUTE  1 //执行操作) ->  (NSM_AGENT_EXECUTE_CREAT_DIR 1 //create dir)
 '''
-fun_table = [[''], ['', 'create_dir'], [''], [''], ['']]
+fun_table = [
+                [''],
+                ['', 'create_dir', 'list_dir'],
+                [''],
+                [''],
+                ['']
+            ]

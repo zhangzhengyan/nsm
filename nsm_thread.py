@@ -13,6 +13,7 @@ import ConfigParser
 import pika
 import json
 import datetime
+import os
 
 #集群节点系统信息配置文件目录
 sys_conf = "/var/nsm_agent/myself"
@@ -123,8 +124,9 @@ def send_register(channel, exchange, routing_key):
     message["id"] = 0
     #注册消息的类型
     message["type"] = nsm_agent_modules.message_type["NSM_AGENT_REGISTER"]
-    #功能id为0
-    message["fun_id"] = nsm_agent_modules.fun_id["NSM_UNDEFINE"]
+    #注册类型其实只有这一个消息，功能id应该为0，但是这里将节点的状态一并发送，功能id打上状态id
+    #由于注册消息定时发送，所有这样没问题，要是注册只注册一次那么状态消息应该独立出来
+    message["fun_id"] = nsm_agent_modules.check_fun_id["NSM_AGENT_CHECK_NODE_STATUS"]
     message["echo"] = False
     message["sync"] = False
     message["timestamp"] = time.time()
@@ -138,15 +140,54 @@ def send_register(channel, exchange, routing_key):
     config.readfp(open(sys_conf))
 
     message["body"]["sys_type"] = {}
-    message["body"]["sys_type"]["mon"] = config.get("sys_type", "mon")
-    message["body"]["sys_type"]["osd"] = config.get("sys_type", "osd")
-    message["body"]["sys_type"]["mds"] = config.get("sys_type", "mds")
-    message["body"]["sys_type"]["nfs"] = config.get("sys_type", "nfs")
-    message["body"]["sys_type"]["cifs"] = config.get("sys_type", "cifs")
-    message["body"]["sys_type"]["ftp"] = config.get("sys_type", "ftp")
+    message["body"]["sys_type"]["mon"] = int(config.get("sys_type", "mon"))
+    message["body"]["sys_type"]["osd"] = int(config.get("sys_type", "osd"))
+    message["body"]["sys_type"]["mds"] = int(config.get("sys_type", "mds"))
+    message["body"]["sys_type"]["nfs"] = int(config.get("sys_type", "nfs"))
+    message["body"]["sys_type"]["cifs"] = int(config.get("sys_type", "cifs"))
+    message["body"]["sys_type"]["ftp"] = int(config.get("sys_type", "ftp"))
 
-    #print message
+    message["body"]["sys_status"] = {}
+    #check service status
+    if message["body"]["sys_type"]["mon"] == 1:
+        cmd = 'ps aux | grep ceph-mon | grep -v grep | wc -l'
+        mon_num = os.popen(cmd, 'r').read()
+        if int(mon_num) >= 1:
+            message["body"]["sys_status"]["mon"] = 1
+        else:
+            message["body"]["sys_status"]["mon"] = 0
+
+    if message["body"]["sys_type"]["osd"] == 1:
+        cmd = "lsblk | awk '{print $7}' | awk -F\"/\" '{print $6}' | awk -F\"-\" '{print $2}'"
+        count = 0
+        for line in os.popen(cmd, 'r').readlines():
+            try:
+                osd_id = int(line)
+                count += 1
+            except ValueError:
+                pass
+        cmd = "ps axu | grep -v grep | grep ceph-osd | wc -l"
+        result = os.popen(cmd, 'r').read()
+
+        # print count
+        # print result
+
+        if int(result) == count:
+            message["body"]["sys_status"]["osd"] = 1
+        else:
+            message["body"]["sys_status"]["osd"] = 0
+
+    if message["body"]["sys_type"]["mds"] == 1:
+        cmd = 'ps aux | grep ceph-mds | grep -v grep | wc -l'
+        mon_num = os.popen(cmd, 'r').read()
+        if int(mon_num) >= 1:
+            message["body"]["sys_status"]["mds"] = 1
+        else:
+            message["body"]["sys_status"]["mds"] = 0
+
+    #------------------------------------------------------------------------------------
     message = json.dumps(message, ensure_ascii=False)
+    print message
 
     channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
 
@@ -158,7 +199,7 @@ def send_heartbeat(channel, exchange, routing_key):
     # 注册消息的类型
     message["type"] = nsm_agent_modules.message_type["NSM_AGENT_HEARTBEAT"]
     # 功能id为0
-    message["fun_id"] = nsm_agent_modules.fun_id["NSM_UNDEFINE"]
+    message["fun_id"] = nsm_agent_modules.exe_fun_id["NSM_UNDEFINE"]
     message["echo"] = False
     message["sync"] = False
     message["timestamp"] = time.time()
@@ -172,6 +213,7 @@ def send_heartbeat(channel, exchange, routing_key):
     channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
 
 
+#receive server message and echo result
 class echo_send_thread(threading.Thread):
     def __init__(self, threadID, name, channel, exchange, routing_key, queue):
         threading.Thread.__init__(self)
