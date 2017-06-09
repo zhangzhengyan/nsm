@@ -60,7 +60,7 @@ def create_dir(body):
     '''
 
     #得到目录名
-    dir_name = fs_root_dir + body["dir_name"]
+    dir_name = os.path.join(fs_root_dir, body["dir_name"])
     #创建目，如果目录存在要处理一下，正常情况目录时不应该存在的
     os.makedirs(dir_name)
 
@@ -120,7 +120,204 @@ def list_dir(body):
 
     return re_mes_body
 
+# view file or directory details
+def dir_details(body):
+    re_mes_body = {}
+    # get file or dir name
+    name = body["name"]
+    type = body["type"]
+    export = body["export"]
+    re_mes_body["name"] = name
+    re_mes_body["export"] = export
 
+    full_dir_name = os.path.join(fs_root_dir, name)
+    # dir ?
+    if type == 1:
+        # get dir size
+        dir_size = get_path_size(full_dir_name)
+        re_mes_body["size"] = dir_size
+
+        for root, dirs, files in os.walk(full_dir_name):
+            # dir numbers
+            re_mes_body["dirs"] = len(dirs)
+            # file numbers
+            re_mes_body["files"] = len(files)
+        if export:
+            re_mes_body["quota"] = {}
+            # get directory quota
+            quota_cmd = 'getfattr -n ceph.quota.max_bytes ' + full_dir_name
+            quota_cmd += " | grep ceph.quota.max_bytes | awk -F\"=\" '{print $2}'"
+            print quota_cmd
+
+            # for line in os.popen(quota_cmd, 'r').readlines():
+            result = os.popen(quota_cmd, 'r').read().strip('\n')
+            re_mes_body["quota"]["max_file_size"] = str(result)
+
+            # get directory quota
+            quota_cmd = 'getfattr -n ceph.quota.max_files ' + full_dir_name
+            quota_cmd += " | grep ceph.quota.max_files | awk -F\"=\" '{print $2}'"
+            print quota_cmd
+            result = os.popen(quota_cmd, 'r').read().strip('\n')
+            re_mes_body["quota"]["max_file_num"] = str(result)
+
+    else: #file ??
+        file_size = os.path.getsize(full_dir_name)
+        re_mes_body["size"] = file_size
+
+    # get limit
+    mode = os.stat(full_dir_name).st_mode
+    limit = stat.S_IMODE(mode)
+
+    # limit mask
+    # usr_r = 0b100000000
+    # usr_w = 0b010000000
+    # usr_x = 0b010000000
+    # grp_r = 0b000100000
+    # grp_w = 0b000010000
+    # grp_x = 0b000001000
+    # oth_r = 0b000000100
+    # oth_w = 0b000000010
+    # oth_x = 0b000000001
+    limit_mask = {"user": [0b100000000, 0b010000000, 0b001000000],
+                  "group": [0b000100000, 0b000010000, 0b000001000],
+                  "other": [0b000000100, 0b000000010, 0b000000001]}
+
+    user = []
+    for usr_limit in limit_mask["user"]:
+        if (limit & usr_limit) is not 0:
+            user.append(1)
+        else:
+            user.append(0)
+
+    group = []
+    for usr_limit in limit_mask["group"]:
+        if (limit & usr_limit) is not 0:
+            group.append(1)
+        else:
+            group.append(0)
+
+    other = []
+    for usr_limit in limit_mask["other"]:
+        if (limit & usr_limit) is not 0:
+            other.append(1)
+        else:
+            other.append(0)
+
+    re_mes_body["limit"] = {}
+    re_mes_body["limit"]["user"] = user
+    re_mes_body["limit"]["group"] = group
+    re_mes_body["limit"]["other"] = other
+
+
+    return re_mes_body
+
+def modify_dir(body):
+
+    #得到目录名
+    dir_name = os.path.join(fs_root_dir, body["dir_name"])
+    if not os.path.exists(dir_name):
+        re_mes_body = {"echo": "no"}
+        return re_mes_body
+
+    #计算权限值
+    limit_value = body["limit"]["user"][0] * stat.S_IRUSR \
+                + body["limit"]["user"][1] * stat.S_IWUSR \
+                + body["limit"]["user"][2] * stat.S_IXUSR \
+                + body["limit"]["user_group"][0] * stat.S_IRGRP \
+                + body["limit"]["user_group"][1] * stat.S_IWGRP \
+                + body["limit"]["user_group"][2] * stat.S_IXGRP \
+                + body["limit"]["other"][0] * stat.S_IROTH \
+                + body["limit"]["other"][1] * stat.S_IWOTH \
+                + body["limit"]["other"][2] * stat.S_IXOTH
+
+    os.chmod(dir_name, limit_value)
+
+    #set directory quota
+    quota_cmd = 'setfattr -n ceph.quota.max_bytes -v ' + body["quota"]["max_file_size"] + ' ' + dir_name
+    os.system(quota_cmd)
+
+    quota_cmd = 'setfattr -n ceph.quota.max_files -v ' + body["quota"]["max_file_num"] + ' ' + dir_name
+    os.system(quota_cmd)
+
+    re_mes_body={"echo":"ok"}
+
+    return re_mes_body
+
+
+#modify nfs config
+def nfs_conf_modify(body):
+    export = body["export"]
+    fo =open("/etc/nfs.conf", "wb")
+
+    for export_dir in export:
+        #write EXPORT
+        #{
+        fo.write("EXPORT\n{\n")
+        #export id
+        export_id = "Export_ID=" + str(export_dir["export_id"]) + ";"
+        fo.write("\t")
+        fo.write(export_id)
+        fo.write("\n")
+        #path
+        path = "Path=" + export_dir["path"] + ";"
+        fo.write("\t")
+        fo.write(path)
+        fo.write("\n")
+        #Pseudo
+        Pseudo = "Pseudo=" + export_dir["path"] + ";"
+        fo.write("\t")
+        fo.write(Pseudo)
+        fo.write("\n")
+        #Access_Type
+        access_type = "Access_Type=RO" + ";"
+        fo.write("\t")
+        fo.write(access_type)
+        fo.write("\n")
+        #Transports
+        Transports = "Transports=TCP;"
+        fo.write("\t")
+        fo.write(Transports)
+        fo.write("\n")
+        #FSAL { Name = CEPH; }
+        FSAL = "\tFSAL\n\t{\n\t\tName=CEPH;\n\t}\n"
+        fo.write(FSAL)
+        for client in export_dir["clients"]:
+            #clients
+            fo.write("\tCLIENT\n")
+            #{
+            fo.write("\t{\n")
+            #ip
+            client_addr = "Clients="
+            i = 0
+            for ip in client:
+                if i == 0:
+                    client_addr += ip
+                else:
+                    client_addr += "," + ip
+                i += 1
+            client_addr += ";"
+            fo.write("\t\t")
+            fo.write(client_addr)
+            fo.write("\n")
+            #Squash
+            Squash = "Squash=" + client["Squash"] + ";"
+            fo.write("\t\t")
+            fo.write(Squash)
+            fo.write("\n")
+            # Access_Type
+            Access_Type = "Access_Type=" + client["Access_Type"] + ";"
+            fo.write("\t\t")
+            fo.write(Access_Type)
+            fo.write("\n")
+            #}
+            fo.write("\t}\n")
+        #}
+        fo.write("}\n")
+
+    fo.close()
+
+    re_mes_body = {"echo": "ok"}
+    return re_mes_body
 
 '''
 fun_table is message type function function table
@@ -128,7 +325,7 @@ so fun_table[1][1]==(NSM_AGENT_EXECUTE  1 //执行操作) ->  (NSM_AGENT_EXECUTE
 '''
 fun_table = [
                 [''],
-                ['', 'create_dir', 'list_dir'],
+                ['', 'create_dir', 'list_dir', 'dir_details', 'modify_dir', 'nfs_conf_modify'],
                 [''],
                 [''],
                 ['']

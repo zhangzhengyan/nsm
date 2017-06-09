@@ -235,8 +235,3 @@ class echo_send_thread(threading.Thread):
                 self.channel.basic_publish(exchange=self.exchange, routing_key=self.routing_key, body=echo_mes)
             else:
                 time.sleep(1)
-
-
-
-
-
