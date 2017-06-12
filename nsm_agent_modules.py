@@ -259,12 +259,13 @@ def nfs_conf_modify(body):
         fo.write(export_id)
         fo.write("\n")
         #path
-        path = "Path=" + export_dir["path"] + ";"
+        full_path = os.path.join(fs_root_dir, export_dir["path"])
+        path = "Path=" + full_path + ";"
         fo.write("\t")
         fo.write(path)
         fo.write("\n")
         #Pseudo
-        Pseudo = "Pseudo=" + export_dir["path"] + ";"
+        Pseudo = "Pseudo=" + full_path + ";"
         fo.write("\t")
         fo.write(Pseudo)
         fo.write("\n")
@@ -289,7 +290,7 @@ def nfs_conf_modify(body):
             #ip
             client_addr = "Clients="
             i = 0
-            for ip in client:
+            for ip in client["client"]:
                 if i == 0:
                     client_addr += ip
                 else:
@@ -319,13 +320,94 @@ def nfs_conf_modify(body):
     re_mes_body = {"echo": "ok"}
     return re_mes_body
 
+
+#modify nfs config
+def cifs_conf_modify(body):
+    export = body["export"]
+    fo =open("/etc/cifs.conf", "wb")
+
+    fo.write("[global]\n")
+    fo.write("workgroup = ZKTX\n")
+    fo.write("log file = /var/log/samba/log.%m\n")
+    fo.write("max log size = 500\n")
+    fo.write("load printers = no\n")
+    fo.write("security = user\n")
+
+    #put in global
+    fo.write("create mode = 0644\n")
+    fo.write("force create mode = 0644\n")
+    fo.write("directory mode = 0755\n")
+    fo.write("force directory mode = 0755\n")
+
+
+    for export_dir in export:
+        #share name
+        share_name = "[" + str(export_dir["share_name"]) + "]"
+        fo.write(share_name)
+        fo.write("\n")
+        #path
+        full_path = os.path.join(fs_root_dir, export_dir["path"])
+        path = "path=" + full_path
+        fo.write(path)
+        fo.write("\n")
+        #vfs objects
+        fo.write("vfs objects = ceph")
+        fo.write("\n")
+        #ceph:config_file
+        fo.write("ceph:config_file = /etc/ceph/ceph.conf")
+        fo.write("\n")
+
+        #valid users
+        fo.write("valid users = ")
+        i = 0
+        for users in export_dir["users"]:
+            for user in users["user"]:
+                if i == 0:
+                    fo.write(user)
+                    i = 1
+                else:
+                    fo.write(",")
+                    fo.write(user)
+        fo.write("\n")
+        #user access limit
+        for users in export_dir["users"]:
+            if users["Access_Type"] == "RO":
+                #read only list
+                fo.write("read list = ")
+                i = 0
+                for user in users["user"]:
+                    if i == 0:
+                        fo.write(user)
+                        i = 1
+                    else:
+                        fo.write(",")
+                        fo.write(user)
+                fo.write("\n")
+            elif users["Access_Type"] == "RW":
+                # write list
+                fo.write("write list = ")
+                i = 0
+                for user in users["user"]:
+                    if i == 0:
+                        fo.write(user)
+                        i = 1
+                    else:
+                        fo.write(",")
+                        fo.write(user)
+                fo.write("\n")
+
+    fo.close()
+
+    re_mes_body = {"echo": "ok"}
+    return re_mes_body
+
 '''
 fun_table is message type function function table
 so fun_table[1][1]==(NSM_AGENT_EXECUTE  1 //执行操作) ->  (NSM_AGENT_EXECUTE_CREAT_DIR 1 //create dir)
 '''
 fun_table = [
                 [''],
-                ['', 'create_dir', 'list_dir', 'dir_details', 'modify_dir', 'nfs_conf_modify'],
+                ['', 'create_dir', 'list_dir', 'dir_details', 'modify_dir', 'nfs_conf_modify', 'cifs_conf_modify'],
                 [''],
                 [''],
                 ['']

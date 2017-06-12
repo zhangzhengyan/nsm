@@ -52,7 +52,7 @@ def main():
     export =[
         {
             "export_id": 1,
-            "path": "/a",
+            "path": "a",
             "clients":
                 [
                     {
@@ -86,7 +86,7 @@ def main():
         },
         {
             "export_id": 2,
-            "path": "/b",
+            "path": "b/c",
             "clients":
                 [
                     {
@@ -119,6 +119,56 @@ def main():
                 ]
         }
     ]
+
+
+    # export = [
+    #     {
+    #         "share_name": "a",
+    #         "path": "a",
+    #         "users":
+    #             [
+    #                 {
+    #                     "user":
+    #                         [
+    #                             "a",
+    #                             "b"
+    #                         ],
+    #                     "Access_Type": "RO"
+    #                 },
+    #                 {
+    #                     "user":
+    #                         [
+    #                             "c",
+    #                             "d"
+    #                         ],
+    #                     "Access_Type": "RW"
+    #                 }
+    #             ]
+    #     },
+    #     {
+    #         "share_name": "b",
+    #         "path": "b/c",
+    #         "users":
+    #             [
+    #                 {
+    #                     "user":
+    #                         [
+    #                             "a",
+    #                             "b"
+    #                         ],
+    #                     "Access_Type": "RW"
+    #                 },
+    #                 {
+    #                     "user":
+    #                         [
+    #                             "c",
+    #                             "d"
+    #                         ],
+    #                     "Access_Type": "RO"
+    #                 }
+    #             ]
+    #     }
+    # ]
 
     arr_json["body"]["export"] = export
 

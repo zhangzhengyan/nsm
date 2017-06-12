@@ -57,8 +57,8 @@ class send_thread(threading.Thread):
         #sleep times
         interval_count=0
 
-        #while True:
-        while False:
+        while True:
+        # while False:
             if sleep_interval:
                 time.sleep(sleep_interval)
 
