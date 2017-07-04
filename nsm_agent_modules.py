@@ -8,7 +8,6 @@ import stat
 from nsm_lib import fs_root_dir
 from nsm_lib import get_path_size
 
-
 '''
 消息的结构体如下：
 {
@@ -24,14 +23,19 @@ from nsm_lib import get_path_size
 消息类型包括：
 NSM_AGENT_EXECUTE		1   执行操作
     NSM_AGENT_EXECUTE_CREAT_DIR 1 //create dir
+    NSM_AGENT_EXECUTE_LIST_DIR 2 //list dir
+    NSM_AGENT_EXECUTE_DETAILS_DIR 3 //details dir
 NSM_AGENT_HEARTBEAT		2   心跳
 NSM_AGENT_CHECK			3   监控
 NSM_AGENT_REGISTER		4	agent注册
 '''
 
 message_type = {"NSM_AGENT_UNDEFINE":0, "NSM_AGENT_EXECUTE":1, "NSM_AGENT_HEARTBEAT":2,"NSM_AGENT_CHECK":3, "NSM_AGENT_REGISTER":4}
-exe_fun_id = {"NSM_UNDEFINE":0, "NSM_AGENT_EXECUTE_CREAT_DIR":1, "NSM_AGENT_EXECUTE_LIST_DIR":2}
-check_fun_id = {"NSM_UNDEFINE":0, "NSM_AGENT_CHECK_NODE_STATUS":1}
+exe_fun_id =    {\
+                "NSM_UNDEFINE":0, "NSM_AGENT_EXECUTE_CREAT_DIR":1, "NSM_AGENT_EXECUTE_LIST_DIR":2, "NSM_AGENT_EXECUTE_DETAILS_DIR":3, \
+                "NSM_AGENT_EXECUTE_MODIFY_DIR": 4 \
+                }
+check_fun_id = {"NSM_UNDEFINE":0, "NSM_AGENT_CHECK_NODE_STATUS":1, "NSM_AGENT_CHECK_CIFS_CONN":2}
 
 def create_dir(body):
 
@@ -78,13 +82,17 @@ def create_dir(body):
     os.chmod(dir_name, limit_value)
 
     #set directory quota
-    quota_cmd = 'setfattr -n ceph.quota.max_bytes -v ' + body["quota"]["max_file_size"] + ' ' + dir_name
-    print quota_cmd
-    os.system(quota_cmd)
-
-    quota_cmd = 'setfattr -n ceph.quota.max_files -v ' + body["quota"]["max_file_num"] + ' ' + dir_name
-    print quota_cmd
-    os.system(quota_cmd)
+    # print body["quota"]["max_file_size"]
+    if body["quota"]["max_file_size"] <> "0":
+        quota_cmd = 'setfattr -n ceph.quota.max_bytes -v ' + body["quota"]["max_file_size"] + ' ' + dir_name
+        # print quota_cmd
+        os.system(quota_cmd)
+        
+    # print body["quota"]["max_file_num"]
+    if body["quota"]["max_file_num"] <> "0":
+        quota_cmd = 'setfattr -n ceph.quota.max_files -v ' + body["quota"]["max_file_num"] + ' ' + dir_name
+        # print quota_cmd
+        os.system(quota_cmd)
 
     re_mes_body={"echo":"ok"}
 
@@ -121,7 +129,7 @@ def list_dir(body):
     return re_mes_body
 
 # view file or directory details
-def dir_details(body):
+def details_dir(body):
     re_mes_body = {}
     # get file or dir name
     name = body["name"]
@@ -321,7 +329,7 @@ def nfs_conf_modify(body):
     return re_mes_body
 
 
-#modify nfs config
+#modify samba config
 def cifs_conf_modify(body):
     export = body["export"]
     fo =open("/etc/cifs.conf", "wb")
@@ -401,13 +409,37 @@ def cifs_conf_modify(body):
     re_mes_body = {"echo": "ok"}
     return re_mes_body
 
+#set dir quota
+def dir_quota_set(body):
+    # 得到目录名
+    dir_name = os.path.join(fs_root_dir, body["dir_name"])
+
+    # set directory quota
+    # print body["quota"]["max_file_size"]
+    if body["quota"]["max_file_size"] <> "0":
+        quota_cmd = 'setfattr -n ceph.quota.max_bytes -v ' + body["quota"]["max_file_size"] + ' ' + dir_name
+        # print quota_cmd
+        os.system(quota_cmd)
+
+    # print body["quota"]["max_file_num"]
+    if body["quota"]["max_file_num"] <> "0":
+        quota_cmd = 'setfattr -n ceph.quota.max_files -v ' + body["quota"]["max_file_num"] + ' ' + dir_name
+        # print quota_cmd
+        os.system(quota_cmd)
+
+    re_mes_body = {"echo": "ok"}
+
+    return re_mes_body
+
+
+
 '''
 fun_table is message type function function table
 so fun_table[1][1]==(NSM_AGENT_EXECUTE  1 //执行操作) ->  (NSM_AGENT_EXECUTE_CREAT_DIR 1 //create dir)
 '''
 fun_table = [
                 [''],
-                ['', 'create_dir', 'list_dir', 'dir_details', 'modify_dir', 'nfs_conf_modify', 'cifs_conf_modify'],
+                ['', 'create_dir', 'list_dir', 'details_dir', 'modify_dir', 'nfs_conf_modify', 'cifs_conf_modify', 'dir_quota_set'],
                 [''],
                 [''],
                 ['']

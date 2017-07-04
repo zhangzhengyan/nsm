@@ -91,7 +91,8 @@ class send_thread(threading.Thread):
         if run_interval == self.task_run_interval["10_SEC_TASK"]:
             # print "10 second run"
             #send heartbeat every 10 second
-            send_heartbeat(self.channel, self.exchange, self.routing_key)
+            # send_heartbeat(self.channel, self.exchange, self.routing_key)
+            send_cifs_conn(self.channel, self.exchange, self.routing_key)
             end_time = time.time()
 
             return int((end_time - start_time) / sleep_interval)
@@ -212,6 +213,79 @@ def send_heartbeat(channel, exchange, routing_key):
 
     channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
 
+def send_cifs_conn(channel, exchange, routing_key):
+    message = {}
+
+    #注册消息id为0
+    message["id"] = 0
+    #注册消息的类型
+    message["type"] = nsm_agent_modules.message_type["NSM_AGENT_CHECK"]
+    #注册类型其实只有这一个消息，功能id应该为0，但是这里将节点的状态一并发送，功能id打上状态id
+    #由于注册消息定时发送，所有这样没问题，要是注册只注册一次那么状态消息应该独立出来
+    message["fun_id"] = nsm_agent_modules.check_fun_id["NSM_AGENT_CHECK_CIFS_CONN"]
+    message["echo"] = False
+    message["sync"] = False
+    message["timestamp"] = time.time()
+    message["shost"] = nsm_lib.getLocalIp()
+
+    #fill body
+    message["body"] = {}
+
+    conn_list = []
+
+    conn_0 = {}
+    conn_1 = {}
+    pid_list = []
+
+    #pid:user:group:ip
+    cmd = "smbstatus -p | awk -F '[: ]+' '{if($1~/^[0-9]/)print $1\" \"$2\" \"$3\" \"$6;}'"
+    for line in os.popen(cmd, 'r').readlines():
+        try:
+            conn_info = line.split()
+            pid = str(conn_info[0])
+            pid_list.append(pid)
+            conn_0[pid] = {}
+            conn_0[pid]["user_name"] = conn_info[1]
+            conn_0[pid]["group_name"] = conn_info[2]
+            conn_0[pid]["ip"] = conn_info[3]
+        except:
+            pass
+    # pid:share_dir
+    cmd = "smbstatus -S | awk '{if($2~/^[0-9]/ && $1 != \"IPC$\")print $2\" \"$1\" \"$4\" \"$5\" \"$6\" \"$7\" \"$8\" \"$9\" \"$10}'"
+    #22957 IPC$ Tue Jul 4 01:29:21 PM 2017 CST
+    #22991 zzy Tue Jul 4 01:32:04 PM 2017 CST
+    for line in os.popen(cmd, 'r').readlines():
+        try:
+            conn_info = line.split()
+            pid = str(conn_info[0])
+            conn_1[pid] = {}
+            conn_1[pid]["share_dir"] = conn_info[1]
+            conn_1[pid]["timestamp"] = conn_info[2]+" "+conn_info[3]+" "\
+                                       +conn_info[4]+" "+conn_info[5]+" "\
+                                       +conn_info[6]+" "+conn_info[7]+" " \
+                                       +conn_info[8]
+            conn_1[pid]["timestamp"] = time.mktime(\
+                time.strptime(conn_1[pid]["timestamp"], "%a %b %d %H:%M:%S %p %Y %Z"))
+        except:
+            pass
+
+    for pid in pid_list:
+        conn = {}
+        conn["user_name"] = conn_0[pid]["user_name"]
+        conn["group_name"] = conn_0[pid]["group_name"]
+        conn["ip"] = conn_0[pid]["ip"]
+        conn["share_dir"] = conn_1[pid]["share_dir"]
+        conn["pid"] = pid
+        conn["mount_time"] = conn_1[pid]["timestamp"]
+        conn_list.append(conn)
+
+    message["body"]["conn_list"] = conn_list
+
+    #------------------------------------------------------------------------------------
+    message = json.dumps(message, ensure_ascii=False)
+    print message
+
+    channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
 
 #receive server message and echo result
 class echo_send_thread(threading.Thread):

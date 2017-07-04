@@ -41,84 +41,87 @@ def main():
     s2a_channel.exchange_declare(exchange=s2a_exchange, type=s2a_exchange_type)
 
     #create dir message
-    # arr_json = {"id":1,"type":1, "fun_id":1, "echo":True, "sync":True, "body":{ "dir_name":"/polly",\
+    # arr_json = {"id":1,"type":1, "fun_id":1, "echo":True, "sync":True, "body":{ "dir_name":"polly",\
     # 	"limit":{"user":[1, 1, 0],  "user_group":[1, 0, 0],  "other":[1, 0, 1]},\
-    # 	"quota":{"max_file_num":"10000", "max_file_size":"5242880"} } }
+    # 	"quota":{"max_file_num":"100", "max_file_size":"102400"} } }
+
+    arr_json = {"id": 1, "type": 1, "fun_id": 7, "echo": True, "sync": True, "body": {"dir_name": "polly", \
+        "quota": {"max_file_num": "1000","max_file_size": "102400"}}}
 
     # arr_json = {"id":1, "type":1, "fun_id":2, "echo":True, "sync":True, "body":{ "dir_name":"polly"} }
     # arr_json = {"id": 1, "type": 1, "fun_id": 3, "echo": True, "sync": True, "body": {"name": "polly", "type":1, "export":True}}
-    arr_json = {"id": 1, "type": 1, "fun_id": 5, "echo": True, "sync": True, "body": {}}
-
-    export =[
-        {
-            "export_id": 1,
-            "path": "a",
-            "clients":
-                [
-                    {
-                        "client":
-                            [
-                                "172.16.1.10",
-                                "192.168.1.0/24"
-                            ],
-                        "Access_Type": "RO",
-                        "Squash": "None"
-                    },
-                    {
-                        "client":
-                            [
-                                "172.16.1.20",
-                                "192.168.2.0/24"
-                            ],
-                        "Access_Type": "RW",
-                        "Squash": "Root"
-                    },
-                    {
-                        "client":
-                            [
-                                "172.16.1.30",
-                                "192.168.3.0/24"
-                            ],
-                        "Access_Type": "RO",
-                        "Squash": "All"
-                    }
-                ]
-        },
-        {
-            "export_id": 2,
-            "path": "b/c",
-            "clients":
-                [
-                    {
-                        "client":
-                            [
-                                "172.16.1.10",
-                                "192.168.1.0/24"
-                            ],
-                        "Access_Type": "RO",
-                        "Squash": "None"
-                    },
-                    {
-                        "client":
-                            [
-                                "172.16.1.20",
-                                "192.168.2.0/24"
-                            ],
-                        "Access_Type": "RW",
-                        "Squash": "Root"
-                    },
-                    {
-                        "client":
-                            [
-                                "172.16.1.30",
-                                "192.168.3.0/24"
-                            ],
-                        "Access_Type": "RO",
-                        "Squash": "All"
-                    }
-                ]
-        }
-    ]
+    # arr_json = {"id": 1, "type": 1, "fun_id": 5, "echo": True, "sync": True, "body": {}}
+    #
+    # export =[
+    #     {
+    #         "export_id": 1,
+    #         "path": "a",
+    #         "clients":
+    #             [
+    #                 {
+    #                     "client":
+    #                         [
+    #                             "172.16.1.10",
+    #                             "192.168.1.0/24"
+    #                         ],
+    #                     "Access_Type": "RO",
+    #                     "Squash": "None"
+    #                 },
+    #                 {
+    #                     "client":
+    #                         [
+    #                             "172.16.1.20",
+    #                             "192.168.2.0/24"
+    #                         ],
+    #                     "Access_Type": "RW",
+    #                     "Squash": "Root"
+    #                 },
+    #                 {
+    #                     "client":
+    #                         [
+    #                             "172.16.1.30",
+    #                             "192.168.3.0/24"
+    #                         ],
+    #                     "Access_Type": "RO",
+    #                     "Squash": "All"
+    #                 }
+    #             ]
+    #     },
+    #     {
+    #         "export_id": 2,
+    #         "path": "b/c",
+    #         "clients":
+    #             [
+    #                 {
+    #                     "client":
+    #                         [
+    #                             "172.16.1.10",
+    #                             "192.168.1.0/24"
+    #                         ],
+    #                     "Access_Type": "RO",
+    #                     "Squash": "None"
+    #                 },
+    #                 {
+    #                     "client":
+    #                         [
+    #                             "172.16.1.20",
+    #                             "192.168.2.0/24"
+    #                         ],
+    #                     "Access_Type": "RW",
+    #                     "Squash": "Root"
+    #                 },
+    #                 {
+    #                     "client":
+    #                         [
+    #                             "172.16.1.30",
+    #                             "192.168.3.0/24"
+    #                         ],
+    #                     "Access_Type": "RO",
+    #                     "Squash": "All"
+    #                 }
+    #             ]
+    #     }
+    # ]
 
 
     # export = [
@@ -170,7 +173,7 @@ def main():
     #     }
     # ]
 
-    arr_json["body"]["export"] = export
+    # arr_json["body"]["export"] = export
 
     python_to_json = json.dumps(arr_json, ensure_ascii=False)
 
