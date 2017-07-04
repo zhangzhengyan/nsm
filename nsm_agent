@@ -21,10 +21,6 @@ def s2a_callback(ch, method, properties, message):
     global echo_mes_queue
 
     #根据功能类型执行不同的功能函数
-    # if mes["type"] == nsm_agent_modules.message_type["NSM_AGENT_EXECUTE"]:
-    #     if mes["fun_id"] == nsm_agent_modules.fun_id["NSM_AGENT_EXECUTE_CREAT_DIR"]:
-    #         #创建目录 并指定权限和配额等
-    #         nsm_agent_modules.create_dir(mes["body"])
     f = eval(fun_table[mes["type"]][mes["fun_id"]])
     re_mes_body = f(mes["body"])
 
