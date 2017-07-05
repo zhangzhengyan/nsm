@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 1、module pika need install
 
 2、filesystem root dir is /ifs, init create and mount
@@ -9,3 +10,6 @@
 
 
 
+=======
+module pika need install
+>>>>>>> b8e498420a53de900d0a07694df4ce309b004d39

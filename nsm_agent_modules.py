@@ -35,10 +35,14 @@ exe_fun_id =    {\
                 "NSM_UNDEFINE":0, "NSM_AGENT_EXECUTE_CREAT_DIR":1, "NSM_AGENT_EXECUTE_LIST_DIR":2, "NSM_AGENT_EXECUTE_DETAILS_DIR":3, \
                 "NSM_AGENT_EXECUTE_MODIFY_DIR": 4 \
                 }
+<<<<<<< HEAD
 check_fun_id =  {\
                 "NSM_UNDEFINE":0, "NSM_AGENT_CHECK_NODE_STATUS":1, "NSM_AGENT_CHECK_CIFS_CONN":2, \
                 "NSM_AGENT_CHECK_NFS_CONN":3, "NSM_AGENT_CHECK_FS_CAPACITY":4 \
                 }
+=======
+check_fun_id = {"NSM_UNDEFINE":0, "NSM_AGENT_CHECK_NODE_STATUS":1, "NSM_AGENT_CHECK_CIFS_CONN":2}
+>>>>>>> b8e498420a53de900d0a07694df4ce309b004d39
 
 def create_dir(body):
 

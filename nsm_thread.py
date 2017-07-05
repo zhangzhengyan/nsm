@@ -95,8 +95,12 @@ class send_thread(threading.Thread):
             # print "10 second run"
             #send heartbeat every 10 second
             # send_heartbeat(self.channel, self.exchange, self.routing_key)
+<<<<<<< HEAD
             # send_cifs_conn(self.channel, self.exchange, self.routing_key)
             # send_nfs_conn(self.channel, self.exchange, self.routing_key)
+=======
+            send_cifs_conn(self.channel, self.exchange, self.routing_key)
+>>>>>>> b8e498420a53de900d0a07694df4ce309b004d39
             end_time = time.time()
 
             return int((end_time - start_time) / sleep_interval)
@@ -219,6 +223,7 @@ def send_heartbeat(channel, exchange, routing_key):
     channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
 
 def send_cifs_conn(channel, exchange, routing_key):
+<<<<<<< HEAD
 
     message = {}
 
@@ -226,6 +231,16 @@ def send_cifs_conn(channel, exchange, routing_key):
     message["id"] = 0
     #消息的类型
     message["type"] = nsm_agent_modules.message_type["NSM_AGENT_CHECK"]
+=======
+    message = {}
+
+    #注册消息id为0
+    message["id"] = 0
+    #注册消息的类型
+    message["type"] = nsm_agent_modules.message_type["NSM_AGENT_CHECK"]
+    #注册类型其实只有这一个消息，功能id应该为0，但是这里将节点的状态一并发送，功能id打上状态id
+    #由于注册消息定时发送，所有这样没问题，要是注册只注册一次那么状态消息应该独立出来
+>>>>>>> b8e498420a53de900d0a07694df4ce309b004d39
     message["fun_id"] = nsm_agent_modules.check_fun_id["NSM_AGENT_CHECK_CIFS_CONN"]
     message["echo"] = False
     message["sync"] = False
@@ -287,6 +302,7 @@ def send_cifs_conn(channel, exchange, routing_key):
 
     #------------------------------------------------------------------------------------
     message = json.dumps(message, ensure_ascii=False)
+<<<<<<< HEAD
     # print message
 
     channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
@@ -384,6 +400,8 @@ def send_fs_capacity(channel, exchange, routing_key):
 
     #------------------------------------------------------------------------------------
     message = json.dumps(message, ensure_ascii=False)
+=======
+>>>>>>> b8e498420a53de900d0a07694df4ce309b004d39
     print message
 
     channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
