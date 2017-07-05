@@ -35,7 +35,10 @@ exe_fun_id =    {\
                 "NSM_UNDEFINE":0, "NSM_AGENT_EXECUTE_CREAT_DIR":1, "NSM_AGENT_EXECUTE_LIST_DIR":2, "NSM_AGENT_EXECUTE_DETAILS_DIR":3, \
                 "NSM_AGENT_EXECUTE_MODIFY_DIR": 4 \
                 }
-check_fun_id = {"NSM_UNDEFINE":0, "NSM_AGENT_CHECK_NODE_STATUS":1, "NSM_AGENT_CHECK_CIFS_CONN":2}
+check_fun_id =  {\
+                "NSM_UNDEFINE":0, "NSM_AGENT_CHECK_NODE_STATUS":1, "NSM_AGENT_CHECK_CIFS_CONN":2, \
+                "NSM_AGENT_CHECK_NFS_CONN":3, "NSM_AGENT_CHECK_FS_CAPACITY":4 \
+                }
 
 def create_dir(body):
 
@@ -100,7 +103,6 @@ def create_dir(body):
 
 #list directories and the files under the specified directory
 def list_dir(body):
-    global sys_root_dir
     dir_name = body["dir_name"]
     full_dir_name = os.path.join(fs_root_dir, dir_name)
 

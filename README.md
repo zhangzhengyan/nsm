@@ -1,2 +1,0 @@
-# nsm
-nsm agent

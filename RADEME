@@ -1,1 +1,11 @@
-module pika need install
+1、module pika need install
+
+2、filesystem root dir is /ifs, init create and mount
+
+3、nfs-ganesha client info depend on ganesha_mgr.py, ganesha_mgr.py in ganeshactl dir, init cp src/scripts/ganeshactl to /etc/
+
+
+
+
+
+

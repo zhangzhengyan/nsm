@@ -15,7 +15,7 @@ def getLocalIp(ifname = 'eth0'):
 
 
 
-
+#path size
 def get_path_size(strPath):
     if not os.path.exists(strPath):
         return 0;
@@ -29,3 +29,22 @@ def get_path_size(strPath):
         nTotalSize += get_path_size(os.path.join(strPath, f))
 
     return nTotalSize;
+
+#dir number and file number
+def get_path_capacity(strPath):
+    if not os.path.exists(strPath):
+        return 0;
+
+    if os.path.isfile(strPath):
+        file_num = 1;
+        return file_num, 0;
+
+    file_num = 0;
+    dir_num = 1;  #current is dir
+    dir_list = os.listdir(strPath)
+    for f in dir_list:
+        fiels , dirs = get_path_capacity(os.path.join(strPath, f))
+        file_num += fiels;
+        dir_num += dirs;
+
+    return file_num , dir_num;

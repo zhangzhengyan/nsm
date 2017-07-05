@@ -14,6 +14,9 @@ import pika
 import json
 import datetime
 import os
+import sys
+from nsm_lib import get_path_capacity
+from nsm_lib import fs_root_dir
 
 #集群节点系统信息配置文件目录
 sys_conf = "/var/nsm_agent/myself"
@@ -92,12 +95,14 @@ class send_thread(threading.Thread):
             # print "10 second run"
             #send heartbeat every 10 second
             # send_heartbeat(self.channel, self.exchange, self.routing_key)
-            send_cifs_conn(self.channel, self.exchange, self.routing_key)
+            # send_cifs_conn(self.channel, self.exchange, self.routing_key)
+            # send_nfs_conn(self.channel, self.exchange, self.routing_key)
             end_time = time.time()
 
             return int((end_time - start_time) / sleep_interval)
         if run_interval == self.task_run_interval["30_SEC_TASK"]:
             # print "30 second run"
+            send_fs_capacity(self.channel, self.exchange, self.routing_key)
             end_time = time.time()
 
             return int((end_time - start_time) / sleep_interval)
@@ -214,14 +219,13 @@ def send_heartbeat(channel, exchange, routing_key):
     channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
 
 def send_cifs_conn(channel, exchange, routing_key):
+
     message = {}
 
-    #注册消息id为0
+    #消息id为0
     message["id"] = 0
-    #注册消息的类型
+    #消息的类型
     message["type"] = nsm_agent_modules.message_type["NSM_AGENT_CHECK"]
-    #注册类型其实只有这一个消息，功能id应该为0，但是这里将节点的状态一并发送，功能id打上状态id
-    #由于注册消息定时发送，所有这样没问题，要是注册只注册一次那么状态消息应该独立出来
     message["fun_id"] = nsm_agent_modules.check_fun_id["NSM_AGENT_CHECK_CIFS_CONN"]
     message["echo"] = False
     message["sync"] = False
@@ -280,6 +284,103 @@ def send_cifs_conn(channel, exchange, routing_key):
         conn_list.append(conn)
 
     message["body"]["conn_list"] = conn_list
+
+    #------------------------------------------------------------------------------------
+    message = json.dumps(message, ensure_ascii=False)
+    # print message
+
+    channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
+
+def send_nfs_conn(channel, exchange, routing_key):
+    sys.path.append("/etc/ganeshactl/")
+    import ganesha_mgr
+
+    message = {}
+
+    #消息id为0
+    message["id"] = 0
+    #消息的类型
+    message["type"] = nsm_agent_modules.message_type["NSM_AGENT_CHECK"]
+    # func id
+    message["fun_id"] = nsm_agent_modules.check_fun_id["NSM_AGENT_CHECK_NFS_CONN"]
+    message["echo"] = False
+    message["sync"] = False
+    message["timestamp"] = time.time()
+    message["shost"] = nsm_lib.getLocalIp()
+
+    #fill body
+    message["body"] = {}
+
+    conn_list = []
+
+    client_mgr = ganesha_mgr.ManageClients()
+    clientmgr = client_mgr.clientmgr
+    status, errormsg, reply = clientmgr.ShowClients()
+    if status == True:
+        clients = reply[1]
+    else:
+        pass
+
+    for client in clients:
+        conn = {}
+        ip_str = str(client.ClientIP)
+        split_list = ip_str.split(":")
+        # ::ffff:10.1.15.242, last one is ip
+        ip = split_list[len(split_list) - 1]
+        conn["ip"] = ip
+        conn_list.append(conn)
+
+    message["body"]["conn_list"] = conn_list
+
+    #------------------------------------------------------------------------------------
+    message = json.dumps(message, ensure_ascii=False)
+    print message
+
+    channel.basic_publish(exchange=exchange, routing_key=routing_key, body=message)
+
+def send_fs_capacity(channel, exchange, routing_key):
+    message = {}
+
+    #消息id为0
+    message["id"] = 0
+    #消息的类型
+    message["type"] = nsm_agent_modules.message_type["NSM_AGENT_CHECK"]
+    # func id
+    message["fun_id"] = nsm_agent_modules.check_fun_id["NSM_AGENT_CHECK_FS_CAPACITY"]
+    message["echo"] = False
+    message["sync"] = False
+    message["timestamp"] = time.time()
+    message["shost"] = nsm_lib.getLocalIp()
+
+    #fill body
+    message["body"] = {}
+
+    #get filesystem capacity
+    files, dirs = get_path_capacity(fs_root_dir)
+    message["body"]["file_num"] = files
+    message["body"]["dir_num"] = dirs
+
+    #get filesystem storage space
+    cmd = "rados df | grep \"total used\" | awk '{print $3}'"
+    # total used
+    result  = os.popen(cmd, 'r').readline()
+    try:
+        used = int(result)
+    except:
+        pass
+    else:
+        message["body"]["used_space"] = used
+
+    cmd = "rados df | grep \"total avail\" | awk '{print $3}'"
+    # total avail
+    result = os.popen(cmd, 'r').readline()
+    try:
+        avail = int(result)
+    except:
+        pass
+    else:
+        message["body"]["free_space"] = avail
+
 
     #------------------------------------------------------------------------------------
     message = json.dumps(message, ensure_ascii=False)
